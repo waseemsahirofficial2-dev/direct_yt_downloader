@@ -4,7 +4,7 @@ import sys
 import time
 
 URL = os.environ.get("VIDEO_URL")
-TARGET_RES = os.environ.get("RESOLUTION", "720p").replace("p", "") # e.g., '1080', '720', '480'
+TARGET_RES = os.environ.get("RESOLUTION", "720p").replace("p", "")
 
 USER_AGENT = (
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
@@ -25,9 +25,6 @@ def main():
 
     print(f"🔍 Extracting direct link for: {URL} at target resolution: {TARGET_RES}p", flush=True)
 
-    # Format selector strategy: 
-    # Tries to find a combined video+audio track matching the height constraint first.
-    # Falls back to the best video-only or generic stream matching the height.
     format_selector = f"best[height<={TARGET_RES}][ext=mp4]/best[height<={TARGET_RES}]"
 
     for attempt in range(1, 3):
