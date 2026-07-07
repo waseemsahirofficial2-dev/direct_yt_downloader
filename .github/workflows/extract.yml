@@ -7,12 +7,21 @@ on:
         description: 'Single Video URL to Extract'
         required: true
         type: string
+      resolution:
+        description: 'Target Video Resolution'
+        required: true
+        default: '720p'
+        type: choice
+        options:
+          - '1080p'
+          - '720p'
+          - '480p'
 
 jobs:
   extract-url:
     runs-on: ubuntu-latest
     outputs:
-      direct_link: ${{ steps.extract.outputs.direct_url }}
+      direct_url: ${{ steps.extract.outputs.direct_url }}
     
     steps:
       - name: Checkout Repository
@@ -44,10 +53,14 @@ jobs:
       - name: Load Cookies
         env:
           XHS_COOKIES: ${{ secrets.XHS_COOKIES }}
-        run: echo "$XHS_COOKIES" > cookies.txt
+        run: |
+          if [ -n "$XHS_COOKIES" ]; then
+            echo "$XHS_COOKIES" > cookies.txt
+          fi
 
       - name: Run Extractor
         id: extract
         env:
           VIDEO_URL: ${{ github.event.inputs.video_url }}
+          RESOLUTION: ${{ github.event.inputs.resolution }}
         run: python -u extractor.py
