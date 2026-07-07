@@ -4,6 +4,7 @@ import sys
 import time
 
 URL = os.environ.get("VIDEO_URL")
+TARGET_RES = os.environ.get("RESOLUTION", "720p").replace("p", "") # e.g., '1080', '720', '480'
 
 USER_AGENT = (
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
@@ -11,7 +12,6 @@ USER_AGENT = (
     "Chrome/120.0.0.0 Safari/537.36"
 )
 
-# Added common YouTube clients along with standard fallback
 configs = [
     {"client": "android", "use_cookies": True},
     {"client": "tv", "use_cookies": True},
@@ -23,7 +23,12 @@ def main():
         print("❌ No VIDEO_URL provided.")
         sys.exit(1)
 
-    print(f"🔍 Extracting direct link for: {URL}", flush=True)
+    print(f"🔍 Extracting direct link for: {URL} at target resolution: {TARGET_RES}p", flush=True)
+
+    # Format selector strategy: 
+    # Tries to find a combined video+audio track matching the height constraint first.
+    # Falls back to the best video-only or generic stream matching the height.
+    format_selector = f"best[height<={TARGET_RES}][ext=mp4]/best[height<={TARGET_RES}]"
 
     for attempt in range(1, 3):
         if attempt > 1:
@@ -41,8 +46,7 @@ def main():
                 "--no-check-certificate",
                 "--extractor-args", f"youtube:client={cfg['client']}",
                 "--user-agent", USER_AGENT,
-                # Force a single file with both video and audio (usually max 720p for YT direct links)
-                "-f", "b", 
+                "-f", format_selector, 
                 "--print", "urls",
                 URL
             ]
@@ -59,7 +63,6 @@ def main():
                     print("✅ SUCCESSFULLY EXTRACTED", flush=True)
                     print(f"DIRECT_URL={direct_url}", flush=True)
                     
-                    # Write to GitHub Actions outputs
                     if "GITHUB_OUTPUT" in os.environ:
                         with open(os.environ["GITHUB_OUTPUT"], "a") as f:
                             f.write(f"direct_url={direct_url}\n")
