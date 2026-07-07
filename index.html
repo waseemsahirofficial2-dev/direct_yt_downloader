@@ -5,8 +5,8 @@
     <title>Direct Link Extractor</title>
     <style>
         body { font-family: system-ui; max-width: 600px; margin: 40px auto; padding: 20px; background: #0f172a; color: #f8fafc; }
-        input, button { padding: 12px; width: 100%; margin-bottom: 10px; border-radius: 6px; border: 1px solid #334155; }
-        input { background: #1e293b; color: white; }
+        input, select, button { padding: 12px; width: 100%; margin-bottom: 15px; border-radius: 6px; border: 1px solid #334155; box-sizing: border-box; }
+        input, select { background: #1e293b; color: white; }
         button { background: #3b82f6; color: white; cursor: pointer; font-weight: bold; border: none; }
         button:hover { background: #2563eb; }
         #result { margin-top: 20px; padding: 15px; background: #1e293b; border-radius: 6px; word-break: break-all; display: none; }
@@ -18,32 +18,40 @@
     
     <input type="password" id="ghToken" placeholder="GitHub Personal Access Token (PAT)">
     <input type="text" id="videoUrl" placeholder="Paste Video URL here...">
+    
+    <label for="resolution" style="display:block; margin-bottom: 5px; font-size: 14px; color: #94a3b8;">Select Quality:</label>
+    <select id="resolution">
+        <option value="1080p">1080p (May lack audio on YouTube direct links)</option>
+        <option value="720p" selected>720p (Recommended / Combined stream)</option>
+        <option value="480p">480p</option>
+    </select>
+
     <button onclick="triggerExtraction()">Extract Direct Link</button>
 
     <div id="status"></div>
     <div id="result">
-        <a id="downloadLink" href="#" target="_blank" style="color: #60a5fa;">Click here for direct media</a>
+        <a id="downloadLink" href="#" target="_blank" style="color: #60a5fa; font-weight: bold;">Click here to view/download media asset</a>
     </div>
 
     <script>
         const REPO_OWNER = 'YOUR_GITHUB_USERNAME';
         const REPO_NAME = 'YOUR_REPO_NAME';
-        const WORKFLOW_ID = 'extract.yml'; // The filename of your action
+        const WORKFLOW_ID = 'extract.yml';
 
         async function triggerExtraction() {
             const token = document.getElementById('ghToken').value;
             const url = document.getElementById('videoUrl').value;
+            const res = document.getElementById('resolution').value;
             const statusDiv = document.getElementById('status');
             
             if(!token || !url) {
-                alert("Please provide both a token and a URL");
+                alert("Please provide both your token and the target video URL.");
                 return;
             }
 
-            statusDiv.innerText = "🚀 Waking up GitHub Actions (approx 45s)...";
+            statusDiv.innerText = "🚀 Dispatched run to GitHub Actions...";
             document.getElementById('result').style.display = 'none';
 
-            // 1. Trigger the workflow
             const dispatchRes = await fetch(`https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/actions/workflows/${WORKFLOW_ID}/dispatches`, {
                 method: 'POST',
                 headers: {
@@ -52,21 +60,19 @@
                 },
                 body: JSON.stringify({
                     ref: 'main',
-                    inputs: { video_url: url }
+                    inputs: { 
+                        video_url: url,
+                        resolution: res
+                    }
                 })
             });
 
             if (!dispatchRes.ok) {
-                statusDiv.innerText = "❌ Failed to trigger workflow. Check token permissions.";
+                statusDiv.innerText = "❌ Verification failed. Verify your token permissions and repository naming.";
                 return;
             }
 
-            // 2. Poll for completion and fetch the link (Simplified polling logic)
-            statusDiv.innerText = "⏳ Workflow triggered. Waiting for VPN and extraction...";
-            
-            // In a production scenario, you would poll the /actions/runs endpoint 
-            // to find the specific run, check its status until 'completed', 
-            // and then fetch the logs or artifact to parse the URL out of it.
+            statusDiv.innerText = "⏳ Runner is setting up environment and pulling links. Monitor execution status inside your GitHub Actions panel.";
         }
     </script>
 </body>
