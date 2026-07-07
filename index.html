@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Direct Link Extractor</title>
+    <style>
+        body { font-family: system-ui; max-width: 600px; margin: 40px auto; padding: 20px; background: #0f172a; color: #f8fafc; }
+        input, button { padding: 12px; width: 100%; margin-bottom: 10px; border-radius: 6px; border: 1px solid #334155; }
+        input { background: #1e293b; color: white; }
+        button { background: #3b82f6; color: white; cursor: pointer; font-weight: bold; border: none; }
+        button:hover { background: #2563eb; }
+        #result { margin-top: 20px; padding: 15px; background: #1e293b; border-radius: 6px; word-break: break-all; display: none; }
+    </style>
+</head>
+<body>
+
+    <h2>🔗 Raw Media Extractor</h2>
+    
+    <input type="password" id="ghToken" placeholder="GitHub Personal Access Token (PAT)">
+    <input type="text" id="videoUrl" placeholder="Paste Video URL here...">
+    <button onclick="triggerExtraction()">Extract Direct Link</button>
+
+    <div id="status"></div>
+    <div id="result">
+        <a id="downloadLink" href="#" target="_blank" style="color: #60a5fa;">Click here for direct media</a>
+    </div>
+
+    <script>
+        const REPO_OWNER = 'YOUR_GITHUB_USERNAME';
+        const REPO_NAME = 'YOUR_REPO_NAME';
+        const WORKFLOW_ID = 'extract.yml'; // The filename of your action
+
+        async function triggerExtraction() {
+            const token = document.getElementById('ghToken').value;
+            const url = document.getElementById('videoUrl').value;
+            const statusDiv = document.getElementById('status');
+            
+            if(!token || !url) {
+                alert("Please provide both a token and a URL");
+                return;
+            }
+
+            statusDiv.innerText = "🚀 Waking up GitHub Actions (approx 45s)...";
+            document.getElementById('result').style.display = 'none';
+
+            // 1. Trigger the workflow
+            const dispatchRes = await fetch(`https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/actions/workflows/${WORKFLOW_ID}/dispatches`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Accept': 'application/vnd.github.v3+json'
+                },
+                body: JSON.stringify({
+                    ref: 'main',
+                    inputs: { video_url: url }
+                })
+            });
+
+            if (!dispatchRes.ok) {
+                statusDiv.innerText = "❌ Failed to trigger workflow. Check token permissions.";
+                return;
+            }
+
+            // 2. Poll for completion and fetch the link (Simplified polling logic)
+            statusDiv.innerText = "⏳ Workflow triggered. Waiting for VPN and extraction...";
+            
+            // In a production scenario, you would poll the /actions/runs endpoint 
+            // to find the specific run, check its status until 'completed', 
+            // and then fetch the logs or artifact to parse the URL out of it.
+        }
+    </script>
+</body>
+</html>
